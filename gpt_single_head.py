@@ -15,6 +15,7 @@ n_embd = 32
 
 # ------------
 
+
 torch.manual_seed(2023)
 
 # Load the Victor Hugo dataset
@@ -67,18 +68,27 @@ class Head(nn.Module):
         super().__init__()
         # YOUR CODE
         # add you key, query and value definitions
-
-        ###
+        # define the Key layer  
+        self.key = nn.Linear(n_embd, head_size, bias=False)  # Use n_embd instead of undefined C
+        self.query = nn.Linear(n_embd, head_size, bias=False)
+        self.value = nn.Linear(n_embd, head_size, bias=False) 
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-
 
 
     def forward(self, x):
         B,T,C = x.shape
         ## YOUR CODE HERE
-
+        k =  self.key(x)
+        q =  self.query(x)
+        v =  self.value(x)
+        # compute the normalize product between Q and K 
+        weights = nn.functional.normalize(q, p=2, dim=-1) @ nn.functional.normalize(k, p=2, dim=-1).transpose(-2, -1)
+        # apply the mask (lower triangular matrix)
+        weights = weights.masked_fill(self.tril== 0, float('-inf'))
+        # apply the softmax
+        weights = nn.functional.softmax(weights, dim=-1)
         ###
-        out = weight @ v # (B, T, T) @ (B, T, C) -> (B, T, C)
+        out = weights @ v # (B, T, T) @ (B, T, C) -> (B, T, C)
         return out
 
 
